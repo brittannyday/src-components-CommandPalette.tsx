@@ -1,0 +1,74 @@
+import React, { useRef } from 'react';
+import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
+import { BentoCardProps } from '../types';
+
+export const BentoCard: React.FC<BentoCardProps> = ({ id, title, subtitle, size, children, onClick }) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+  
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  
+  const springConfig = { damping: 25, stiffness: 150, mass: 0.6 };
+  const rotateX = useSpring(useTransform(y, [-0.5, 0.5], [10, -10]), springConfig);
+  const rotateY = useSpring(useTransform(x, [-0.5, 0.5], [-10, 10]), springConfig);
+  
+  const shineX = useTransform(x, [-0.5, 0.5], ["0%", "100%"]);
+  const shineY = useTransform(y, [-0.5, 0.5], ["0%", "100%"]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const mouseX = (e.clientX - rect.left) / rect.width - 0.5;
+    const mouseY = (e.clientY - rect.top) / rect.height - 0.5;
+    
+    x.set(mouseX);
+    y.set(mouseY);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
+  const sizeClasses = {
+    large: 'md:col-span-2 md:row-span-2 h-[380px]',
+    medium: 'md:col-span-1 md:row-span-2 h-[380px]',
+    small: 'md:col-span-1 md:row-span-1 h-[180px]',
+  };
+
+  return (
+    <motion.div
+      ref={cardRef}
+      layoutId={`card-container-${id}`}
+      className={`relative rounded-3xl overflow-hidden cursor-pointer border border-white/[0.08] bg-slate-900/60 backdrop-blur-xl p-6 shadow-2xl group @container ${sizeClasses[size]}`}
+      style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      onClick={onClick}
+      whileHover={{ scale: 1.015 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+    >
+      <motion.div 
+        className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_var(--shine-x)_var(--shine-y),rgba(255,255,255,0.12)_0%,transparent_50%)]"
+        style={{
+          // @ts-ignore
+          '--shine-x': shineX,
+          '--shine-y': shineY,
+        }}
+      />
+
+      <div className="flex flex-col h-full justify-between transform-gpu" style={{ transform: 'translateZ(30px)' }}>
+        <div>
+          <span className="text-xs font-semibold tracking-widest text-indigo-400/80 uppercase mb-2 block">{subtitle}</span>
+          <h3 className="text-xl md:text-2xl font-bold tracking-tight text-white group-hover:text-indigo-200 transition-colors">
+            {title}
+          </h3>
+        </div>
+        
+        <div className="mt-4 flex-1 @[280px]:block hidden w-full">
+          {children}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
